@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font: 14px/1.45 system-ui, sans-serif; margin: 16px; max-width: 760px; color-scheme: light dark; }
+      label { display: flex; gap: 8px; align-items: baseline; margin: 12px 0 2px; }
+      p { margin: 0 0 0 26px; opacity: 0.7; font-size: 13px; }
+      h3 { margin: 22px 0 6px; font-size: 14px; }
+      pre { max-height: 320px; overflow: auto; padding: 8px; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); border-radius: 6px; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <label><input type="checkbox" id="autoOpenThread" /><span data-i18n="optAutoOpen"></span></label>
+    <p data-i18n="optAutoOpenHint"></p>
+    <label><input type="checkbox" id="markRead" /><span data-i18n="optMarkRead"></span></label>
+    <h3 data-i18n="diagTitle"></h3>
+    <pre id="diag"></pre>
+    <button id="copy" data-i18n="diagCopy"></button>
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,104 @@
+{
+  "extName": {
+    "message": "Chat View"
+  },
+  "extDescription": {
+    "message": "Shows an e-mail conversation as a chat: bubbles, live updates, quick reply."
+  },
+  "count": {
+    "message": "Messages in conversation: $1"
+  },
+  "showOriginal": {
+    "message": "Standard view"
+  },
+  "showChat": {
+    "message": "← Chat view"
+  },
+  "newBelow": {
+    "message": "↓ New message"
+  },
+  "placeholder": {
+    "message": "Write a reply…"
+  },
+  "send": {
+    "message": "Send"
+  },
+  "sendTitle": {
+    "message": "Send the reply (Ctrl+Enter)"
+  },
+  "sending": {
+    "message": "Sending…"
+  },
+  "sendFailed": {
+    "message": "Not sent: $1. Your text is in the compose window."
+  },
+  "sentJustNow": {
+    "message": "sent"
+  },
+  "editor": {
+    "message": "Editor"
+  },
+  "editorTitle": {
+    "message": "Open the reply in the full compose window"
+  },
+  "replyTo": {
+    "message": "Reply to: $1"
+  },
+  "loading": {
+    "message": "Loading…"
+  },
+  "bodyFailed": {
+    "message": "Could not load the text. Open the message to read it."
+  },
+  "emptyBody": {
+    "message": "(no text)"
+  },
+  "showQuote": {
+    "message": "Show the whole quote"
+  },
+  "openMessage": {
+    "message": "Open in standard view"
+  },
+  "unread": {
+    "message": "Unread"
+  },
+  "optAutoOpen": {
+    "message": "Clicking a collapsed thread opens it as a chat"
+  },
+  "optAutoOpenHint": {
+    "message": "Thunderbird shows its own summary page for a collapsed thread, and add-ons cannot change that page. With this on, the first message of the thread is selected instead, which expands the thread in the list."
+  },
+  "optMarkRead": {
+    "message": "Mark all messages shown in the chat as read"
+  },
+  "searchOlder": {
+    "message": "Search for older messages"
+  },
+  "searching": {
+    "message": "Searching…"
+  },
+  "searchOlderTitle": {
+    "message": "The conversation refers to messages that were not found within two months of this one. Search all folders of the account (Thunderbird may freeze for a moment)."
+  },
+  "countHidden": {
+    "message": "Messages in conversation: $1 (the $2 earliest are not shown)"
+  },
+  "fromTitle": {
+    "message": "Account the reply is sent from"
+  },
+  "toLatest": {
+    "message": "To the latest message"
+  },
+  "bigMessage": {
+    "message": "Large message ($1): its text is not loaded automatically."
+  },
+  "bigLoad": {
+    "message": "Load the text"
+  },
+  "diagTitle": {
+    "message": "Diagnostics (timings only, no mail content)"
+  },
+  "diagCopy": {
+    "message": "Copy"
+  }
+}
