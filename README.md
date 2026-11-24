@@ -4,6 +4,8 @@ Shows an e-mail conversation as a chat inside the message pane: bubbles (yours
 on the right), quoted text and signatures removed, new messages appear by
 themselves, quick reply at the bottom.
 
+![A conversation shown as chat bubbles in Thunderbird's message pane, with the quick reply box at the bottom](assets/screenshot.png)
+
 Uses only Thunderbird's standard add-on APIs: no Experiment APIs, so no "full
 access" permission and nothing tied to Thunderbird internals.
 
