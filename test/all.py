@@ -125,6 +125,30 @@ raw = quick_reply("А это с рабочего.")
 check("sender: the 'From' box overrides it", "From: Peter Work <me2@work.example>" in raw, [l for l in raw.split("\r\n") if l.startswith("From:")])
 check("compose windows closed", tb.js("return [...Services.wm.getEnumerator(null)].length;") == 1)
 
+# select text in a bubble -> "Quote" -> the reply carries it as a real quote
+tb.select("j5@agents.example"); c = tb.chat()
+r = tb.js("""
+  const root = chatRoot(), win = msgBrowser().contentWindow;
+  const text = root.querySelectorAll(".row")[2].querySelector(".text");
+  const range = win.document.createRange(); range.selectNodeContents(text);
+  const sel = win.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  const rect = text.getBoundingClientRect();
+  text.dispatchEvent(new win.MouseEvent("mouseup", { bubbles: true, composed: true, clientX: rect.left + 20, clientY: rect.top + 5 }));
+  await sleep(250);
+  const pill = root.querySelector(".qpill"), shown = !pill.hidden, box = pill.getBoundingClientRect();
+  pill.click(); await sleep(250);
+  return { shown, inView: box.top > 0 && box.bottom < win.innerHeight, hiddenAfter: pill.hidden, input: root.querySelector("textarea").value, sel: String(win.getSelection()) };""")
+check("quote: selecting text in a message offers 'Quote', which puts it into the reply",
+      r["shown"] and r["inView"] and r["hiddenAfter"] and r["input"] == "> Тесты ещё идут.\n" and r["sel"] == "", r)
+raw = quick_reply(r["input"] + "Понял, жду.")
+body = decoded(raw)
+check("quote: the mail carries a real quote, not a typed '>'", "> Тесты ещё идут." in body and " > Тесты" not in body and "Понял, жду." in body, body[-300:])
+check("quote: sent as plain text with the quote mark at the start of the line", "\n> Тесты ещё идут.\r\nПонял, жду." in body.replace("\r\n>", "\n>") and "text/html" not in raw, body[-300:])
+time.sleep(4)
+info = tb.js("""const row = [...chatRoot().querySelectorAll(".row")].at(-1);
+  return { quotes: [...row.querySelectorAll(".quote")].map(q => q.textContent), text: row.querySelector(".text").textContent, local: row.className.includes("local") };""")
+check("quote: shown as a quote in the chat, also after the copy from Sent arrives", info["quotes"] == ["Тесты ещё идут."] and "Понял, жду." in info["text"] and not info["local"], info)
+
 # "Open in standard view" on a bubble: a tab with the plain message
 tb.select("a4@example.test"); tb.chat()
 r = tb.js("""
@@ -156,7 +180,7 @@ check("inline reply: 'show the whole quote' unfolds it", r2[0] is False and r2[1
 tb.select("j5@agents.example"); c = tb.chat()
 hues = tb.js("""return [...chatRoot().querySelectorAll(".row .author")].map(a => a.style.getPropertyValue("--h"));""")
 check("one address, several senders: each change of sender shows the name, in its own colour",
-      c and [r["author"] for r in c["rows"]] == ["", "Alpha Agent", "Beta Agent", "", "Alpha Agent"] and hues[1] == hues[4] != hues[2],
+      c and [r["author"] for r in c["rows"]][:5] == ["", "Alpha Agent", "Beta Agent", "", "Alpha Agent"] and hues[1] == hues[4] != hues[2],
       (c and [r["author"] for r in c["rows"]], hues))
 
 # collapsed thread

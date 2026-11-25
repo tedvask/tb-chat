@@ -109,8 +109,48 @@ function findReplyHeader(lines) {
  * the trailing quote of the previous message, its "X wrote:" line and the
  * signature are dropped. Quotes in the middle of the text (inline replies) stay.
  */
+/**
+ * Plain text sent as format=flowed (RFC 3676, Thunderbird's default) arrives the
+ * way it travelled: paragraphs cut at about 72 characters, a line that goes on
+ * ending with a space. Such lines are joined again, quotes level by level.
+ * The Content-Type parameter is not available here, so flowed text is told by
+ * a long line ending with a space.
+ */
+export function unflow(text) {
+  const lines = String(text || "").replace(/\r\n?/g, "\n").split("\n");
+  const soft = line => line.endsWith(" ") && !/^>* ?-- $/.test(line);
+  if (!lines.some(line => soft(line) && line.length >= 55)) {
+    return lines.join("\n");
+  }
+  const out = [];
+  let open = null;
+  const close = () => {
+    if (open) {
+      out.push(open.depth ? `${">".repeat(open.depth)} ${open.text}` : open.text);
+      open = null;
+    }
+  };
+  for (const line of lines) {
+    const depth = /^>*/.exec(line)[0].length;
+    const body = line.slice(depth).replace(/^ /, ""); // the space after the quote marks, or space-stuffing
+    if (open && open.depth !== depth) {
+      close();
+    }
+    if (open) {
+      open.text += body;
+    } else {
+      open = { depth, text: body };
+    }
+    if (!soft(line)) {
+      close();
+    }
+  }
+  close();
+  return out.join("\n");
+}
+
 export function chatText(text, { forward = false } = {}) {
-  const original = String(text || "").replace(/\r\n?/g, "\n");
+  const original = unflow(text);
   let lines = original.split("\n").map(l => l.replace(/[ \t ]+$/, ""));
 
   if (!forward) {

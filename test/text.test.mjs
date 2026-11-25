@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { baseSubject, chatText, isForward, parseMessageIds, stripSubjectPrefixes } from "../src/lib/text.js";
+import { baseSubject, chatText, isForward, parseMessageIds, stripSubjectPrefixes, unflow } from "../src/lib/text.js";
 
 test("subject prefixes", () => {
   assert.equal(baseSubject("Re: RE: Fwd: Поставка  оборудования"), "поставка оборудования");
@@ -93,4 +93,39 @@ test("forwarded message keeps everything", () => {
 test("only quotes -> falls back to the full text", () => {
   const t = "> a\n> b";
   assert.equal(chatText(t), t);
+});
+
+test("format=flowed: paragraphs and quotes are joined again", () => {
+  const sent =
+    "> When can you confirm the delivery? We need twelve racks and two \r\n" +
+    "> switches, and a long tail so that the line does not fit into \r\n" +
+    "> seventy-two characters.\r\n" +
+    "> Details here\r\n" +
+    "On Thursday, as agreed, and this answer is long enough to be wrapped by \r\n" +
+    "the mail program as well.\r\n" +
+    "\r\n" +
+    "-- \r\n" +
+    "Peter\r\n";
+  assert.equal(
+    unflow(sent),
+    "> When can you confirm the delivery? We need twelve racks and two switches, and a long tail so that the line does not fit into seventy-two characters.\n" +
+      "> Details here\n" +
+      "On Thursday, as agreed, and this answer is long enough to be wrapped by the mail program as well.\n\n-- \nPeter\n"
+  );
+  assert.equal(
+    chatText(sent),
+    "> When can you confirm the delivery? We need twelve racks and two switches, and a long tail so that the line does not fit into seventy-two characters.\n" +
+      "> Details here\n" +
+      "On Thursday, as agreed, and this answer is long enough to be wrapped by the mail program as well."
+  );
+});
+
+test("format=flowed: a typed '>' (space-stuffed) reads as a quote, quote levels stay apart", () => {
+  const sent = " > a line typed by hand that is long enough to be wrapped by the program \nand continues here\n>> deeper \n> shallower\nplain\n";
+  assert.equal(unflow(sent), "> a line typed by hand that is long enough to be wrapped by the program and continues here\n>> deeper \n> shallower\nplain\n");
+});
+
+test("text that is not flowed is left as it is", () => {
+  const t = "Short line \nnext line\n  indented\n> quote \n> more";
+  assert.equal(unflow(t), t);
 });

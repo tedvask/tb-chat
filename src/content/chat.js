@@ -131,6 +131,20 @@
     line.append(input, full, send);
     composer.append(jump, head, line, err);
 
+    // "Quote" comes up next to a selection made in the messages and puts it into the reply.
+    const quote = el("button", "qpill", t("quote"));
+    quote.type = "button";
+    quote.hidden = true;
+    quote.title = t("quoteTitle");
+    quote.addEventListener("mousedown", e => e.preventDefault()); // the click must not drop the selection
+    quote.addEventListener("click", quoteSelection);
+    list.addEventListener("mouseup", e => setTimeout(() => offerQuote(e.clientX, e.clientY), 0));
+    document.addEventListener("selectionchange", () => {
+      if (!selectedText()) {
+        hideQuote();
+      }
+    });
+
     // Keep Thunderbird's single-key shortcuts (a = archive, j = junk, ...) away from typing.
     for (const type of ["keydown", "keypress", "keyup"]) {
       input.addEventListener(type, e => e.stopPropagation());
@@ -149,7 +163,7 @@
     send.addEventListener("click", submit);
     full.addEventListener("click", () => port.postMessage({ t: "compose" }));
 
-    wrap.append(bar, list, composer);
+    wrap.append(bar, list, composer, quote);
     root.append(style, wrap);
     document.body.prepend(host);
 
@@ -160,7 +174,46 @@
     }).observe(list);
     document.addEventListener("visibilitychange", reportSeen);
 
-    ui = { wrap, bar, count, older, toggle, list, jump, from, to, input, send, full, err };
+    ui = { wrap, bar, count, older, toggle, list, jump, from, to, input, send, full, err, quote };
+  }
+
+  const selectedText = () => String(window.getSelection() || "").replace(/\u00a0/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+
+  function offerQuote(x, y) {
+    if (original || !selectedText()) {
+      hideQuote();
+      return;
+    }
+    const pill = ui.quote;
+    pill.hidden = false;
+    const { width, height } = pill.getBoundingClientRect();
+    const floor = ui.input.getBoundingClientRect().top - 12; // not over the reply box
+    pill.style.left = Math.max(8, Math.min(x + 6, window.innerWidth - width - 8)) + "px";
+    pill.style.top = (y + 14 + height > floor ? Math.max(8, y - height - 14) : y + 14) + "px";
+  }
+
+  function hideQuote() {
+    if (ui && !ui.quote.hidden) {
+      ui.quote.hidden = true;
+    }
+  }
+
+  /** The selected text goes into the reply as "> " lines; sending turns those into a real quote. */
+  function quoteSelection() {
+    const text = selectedText();
+    hideQuote();
+    if (!text) {
+      return;
+    }
+    const quoted = text.split("\n").map(line => (line.trim() ? `> ${line}` : ">")).join("\n");
+    const input = ui.input;
+    const before = input.value && !input.value.endsWith("\n") ? input.value + "\n" : input.value;
+    input.value = `${before}${quoted}\n`;
+    window.getSelection().removeAllRanges();
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    input.scrollTop = input.scrollHeight;
   }
 
   /** Links open in the browser (or a compose window), never inside the message pane. */
@@ -240,6 +293,7 @@
   }
 
   function onScroll() {
+    hideQuote();
     if (!original) {
       updateJump();
       stillHeld();
@@ -327,7 +381,7 @@
       const inner = el("div");
       appendLinked(inner, chunk.map(l => l.replace(/^\s*>\s?/, "")).join("\n"));
       quote.append(inner);
-      if (chunk.length > 3) {
+      if (chunk.length > 3 || inner.textContent.length > 280) {
         // Folded to its last lines: those are what the text below answers.
         quote.classList.add("folded");
         const more = el("button", "link more", t("showQuote"));

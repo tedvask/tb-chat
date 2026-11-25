@@ -60,6 +60,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .jump:hover { border-color: var(--accent); color: var(--accent); }
 .jump.new { border-color: var(--accent); background: var(--accent); color: Canvas; font-size: 12.5px; }
 .jump[hidden] { display: none; }
+.qpill { position: fixed; z-index: 4; height: 28px; padding: 0 12px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent); color: Canvas; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgb(0 0 0 / .25); }
+.qpill[hidden] { display: none; }
+.meta, .day, .more { user-select: none; }
 
 .composer { position: sticky; bottom: 0; z-index: 2; padding: 7px 0 10px; border-top: 1px solid var(--line); background: Canvas; }
 .head { display: flex; align-items: center; gap: 8px; margin: 0 4px 5px; color: var(--dim); font-size: 12px; }

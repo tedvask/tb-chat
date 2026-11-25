@@ -33,7 +33,9 @@ access" permission and nothing tied to Thunderbird internals.
 - A quick reply is a normal reply-all to the newest message, sent through
   Thunderbird's own compose window (it opens for a moment). It carries the
   typed text and the signature only; the quoted message is taken out ("Editor"
-  opens a normal reply with the quote). It is sent from the account the conversation is in
+  opens a normal reply with the quote). Selecting text in a message brings up
+  "Quote", which puts it into the reply as `> ` lines; such lines are sent as a
+  real quote. It is sent from the account the conversation is in
   (the address last written from or to); the "From" box changes that.
 - Collapsed threads: for a collapsed thread Thunderbird shows its own summary
   page, which an add-on cannot change. Best is to set

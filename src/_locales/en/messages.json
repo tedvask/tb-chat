@@ -100,5 +100,11 @@
   },
   "diagCopy": {
     "message": "Copy"
+  },
+  "quote": {
+    "message": "Quote"
+  },
+  "quoteTitle": {
+    "message": "Put the selected text into the reply as a quote"
   }
 }

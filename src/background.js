@@ -29,7 +29,7 @@ const MAX_INLINE_IMAGE = 2 * 1024 * 1024;
 // Getting the text of a message makes Thunderbird parse all of it, attachments
 // included, on its main thread (about 0.1 s per megabyte): above this size only on request.
 const BIG_MESSAGE = 1.5 * 1024 * 1024;
-const CACHE_VERSION = 4; // bump when the way bodies are prepared changes
+const CACHE_VERSION = 5; // bump when the way bodies are prepared changes
 const SKIP_FOLDERS = ["trash", "junk", "drafts", "templates", "outbox"];
 
 const metaCache = new Map(); // message id -> { refs, replyTo } | null (unreadable)
@@ -678,16 +678,33 @@ async function sendReply(session, text) {
     while (doc.body.firstChild && blank(doc.body.firstChild)) {
       doc.body.firstChild.remove();
     }
-    const lines = text.split("\n").map(line => {
+    // Typed "> " lines become a real quote, so that the mail carries it as one
+    // (as plain text Thunderbird would send a typed ">" as ordinary text).
+    const nodes = [];
+    let quote = null;
+    for (const line of text.split("\n")) {
+      const quoted = /^\s*>\s?(.*)$/.exec(line);
+      if (quoted) {
+        if (quote) {
+          quote.append(doc.createElement("br"));
+        } else {
+          quote = doc.createElement("blockquote");
+          quote.setAttribute("type", "cite");
+          nodes.push(quote);
+        }
+        quote.append(quoted[1]);
+        continue;
+      }
+      quote = null;
       const div = doc.createElement("div");
       if (line) {
         div.textContent = line;
       } else {
         div.append(doc.createElement("br"));
       }
-      return div;
-    });
-    doc.body.prepend(...lines);
+      nodes.push(div);
+    }
+    doc.body.prepend(...nodes);
     await browser.compose.setComposeDetails(tab.id, { body: `<!DOCTYPE html>${doc.documentElement.outerHTML}` });
   }
   await browser.compose.sendMessage(tab.id, { mode: "default" });
