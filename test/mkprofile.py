@@ -146,6 +146,16 @@ I2 = msg(ME, BOT, "Re: План миграции", ago(hours=2), "<i2@agents.exa
 for m in (I1, I2):
     m.seen = True
 
+# Several senders behind one address (a shared mailbox): only the display name tells them apart.
+TEAM = "team@agents.example"
+J1 = msg(ME, f"Team <{TEAM}>", "Статус по релизу", ago(hours=5, minutes=10), "<j1@agents.example>", text="Что по статусу?\n")
+J2 = msg(f"Alpha Agent <{TEAM}>", ME, "Re: Статус по релизу", ago(hours=5, minutes=9), "<j2@agents.example>", refs=["<j1@agents.example>"], text="Сборка готова.\n")
+J3 = msg(f"Beta Agent <{TEAM}>", ME, "Re: Статус по релизу", ago(hours=5, minutes=8), "<j3@agents.example>", refs=["<j1@agents.example>"], text="Тесты ещё идут.\n")
+J4 = msg(f"Beta Agent <{TEAM}>", ME, "Re: Статус по релизу", ago(hours=5, minutes=7), "<j4@agents.example>", refs=["<j1@agents.example>"], text="Тесты прошли.\n")
+J5 = msg(f"Alpha Agent <{TEAM}>", ME, "Re: Статус по релизу", ago(hours=5, minutes=6), "<j5@agents.example>", refs=["<j1@agents.example>"], text="Выкладываю.\n")
+for m in (J1, J2, J3, J4, J5):
+    m.seen = True
+
 os.makedirs(SPOOL, exist_ok=True)
 with open(os.path.join(SPOOL, "a6.eml"), "wb") as f:
     f.write(A6.as_bytes())
@@ -154,8 +164,8 @@ acct = os.path.join(PROFILE, "Mail", "127.0.0.1")
 local = os.path.join(PROFILE, "Mail", "Local Folders")
 os.makedirs(acct, exist_ok=True)
 os.makedirs(local, exist_ok=True)
-mbox(os.path.join(acct, "Inbox"), [A1, X1, A3, N1, A4, C1, C2, H1, G1, G3, I1] + e_inbox)
-mbox(os.path.join(acct, "Sent"), [A2, A5, C3, H2, G2, I2] + e_sent)
+mbox(os.path.join(acct, "Inbox"), [A1, X1, A3, N1, A4, C1, C2, H1, G1, G3, I1, J2, J3, J4, J5] + e_inbox)
+mbox(os.path.join(acct, "Sent"), [A2, A5, C3, H2, G2, I2, J1] + e_sent)
 work = os.path.join(PROFILE, "Mail", "localhost")
 os.makedirs(work, exist_ok=True)
 for name in ("Inbox", "Sent", "Trash"):

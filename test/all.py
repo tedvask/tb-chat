@@ -153,6 +153,12 @@ r2 = tb.js("""const inner = [...chatRoot().querySelectorAll(".row")].at(-1).quer
   return [q.classList.contains("folded"), Math.round(q.getBoundingClientRect().height), !!inner.querySelector(".qmore")];""")
 check("inline reply: 'show the whole quote' unfolds it", r2[0] is False and r2[1] > 120 and not r2[2], r2)
 
+tb.select("j5@agents.example"); c = tb.chat()
+hues = tb.js("""return [...chatRoot().querySelectorAll(".row .author")].map(a => a.style.getPropertyValue("--h"));""")
+check("one address, several senders: each change of sender shows the name, in its own colour",
+      c and [r["author"] for r in c["rows"]] == ["", "Alpha Agent", "Beta Agent", "", "Alpha Agent"] and hues[1] == hues[4] != hues[2],
+      (c and [r["author"] for r in c["rows"]], hues))
+
 # collapsed thread
 tb.open_folder(INBOX, threaded=True)
 r = tb.js("""

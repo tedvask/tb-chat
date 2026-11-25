@@ -467,6 +467,15 @@
     items = message.items;
     ui.wrap.hidden = false;
 
+    // One address can stand for several senders (a shared mailbox, several agents
+    // behind one account): there the display name is what tells them apart.
+    const namesAt = new Map();
+    for (const { mine, from } of items) {
+      if (!mine) {
+        namesAt.set(from.email, (namesAt.get(from.email) || new Set()).add(from.name || ""));
+      }
+    }
+    const sender = from => (namesAt.get(from.email)?.size > 1 ? `${from.name || ""}\n` : "") + (from.email || from.name);
     const nodes = [];
     let prev = null;
     for (const item of items) {
@@ -479,7 +488,8 @@
       entry.item = item;
       const date = new Date(item.date);
       const newDay = !prev || new Date(prev.date).toDateString() !== date.toDateString();
-      const grouped = !newDay && prev.from.email === item.from.email && item.date - prev.date < 10 * 60000;
+      const sameSender = !!prev && (item.mine ? prev.mine : !prev.mine && sender(prev.from) === sender(item.from));
+      const grouped = !newDay && sameSender && item.date - prev.date < 10 * 60000;
       if (newDay) {
         nodes.push(el("div", "day", dayLabel(date)));
       }
@@ -487,7 +497,7 @@
       entry.author.hidden = item.mine || grouped;
       entry.author.textContent = item.from.name || item.from.email;
       entry.author.title = item.from.email;
-      entry.author.style.setProperty("--h", hue(item.from.email || item.from.name));
+      entry.author.style.setProperty("--h", hue(sender(item.from)));
       entry.time.textContent = item.local ? t("sentJustNow") : timeFmt.format(date);
       entry.time.title = fullFmt.format(date);
       entry.dot.hidden = !item.unread || item.mine;
