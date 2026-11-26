@@ -29,7 +29,7 @@ const MAX_INLINE_IMAGE = 2 * 1024 * 1024;
 // Getting the text of a message makes Thunderbird parse all of it, attachments
 // included, on its main thread (about 0.1 s per megabyte): above this size only on request.
 const BIG_MESSAGE = 1.5 * 1024 * 1024;
-const CACHE_VERSION = 5; // bump when the way bodies are prepared changes
+const CACHE_VERSION = 6; // bump when the way bodies are prepared changes
 const SKIP_FOLDERS = ["trash", "junk", "drafts", "templates", "outbox"];
 
 const metaCache = new Map(); // message id -> { refs, replyTo } | null (unreadable)

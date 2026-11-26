@@ -122,6 +122,36 @@ H1.seen = True
 H2 = msg(ME, ANNA, "Re: Отчёт за квартал", ago(hours=4), "<h2@example.test>", refs=["<h1@example.test>"], text="Спасибо, посмотрю.\n")
 H2.seen = True
 
+# A mail that tries every way of reaching out to a remote server. The chat must load none of it:
+# a tracking pixel in a bubble would tell the sender that the mail was read.
+RS = "http://127.0.0.1:11180"
+R1 = msg(ANNA, ME, "Рассылка с трекерами", ago(hours=7), "<r1@example.test>",
+         html='<html><head><style>'
+              f'@import url({RS}/style-import.css);'
+              f'@font-face{{font-family:leak;src:url({RS}/style-font.woff)}}'
+              f'.a{{background:url({RS}/style-url.png);color:#123456}} .f{{font-family:leak}}'
+              f'.v{{--u:url({RS}/style-var.png);background:var(--u)}}'
+              f'.w{{background:var(--none, url({RS}/style-var-fallback.png))}}'
+              f'@media screen{{.m{{background:url("{RS}/style-media.png")}}}}'
+              f'.c::before{{content:url({RS}/style-content.png)}} .cur{{cursor:url({RS}/style-cursor.png),auto}}'
+              f'.e{{background:\\75 rl({RS}/style-escaped.png)}} .s{{background-image:image-set("{RS}/style-image-set.png" 1x)}}'
+              '</style>'
+              f'<link rel="stylesheet" href="{RS}/link.css"></head><body background="{RS}/body-background.png">'
+              '<p class="a f v w m c cur e s" id="kept">Письмо с трекерами.</p>'
+              f'<img src="{RS}/img-src.png" width="1" height="1"><img srcset="{RS}/img-srcset.png 2x" alt="x">'
+              f'<table background="{RS}/table-background.png"><tr><td background="{RS}/td-background.png">ячейка</td></tr></table>'
+              f'<div style="background-image:url({RS}/inline-url.png)">a</div>'
+              f'<div style="background:var(--none, url({RS}/inline-var-fallback.png))">b</div>'
+              f'<div style="background-image:image-set(\'{RS}/inline-image-set.png\' 1x)">c</div>'
+              f'<div style="background-image:\\75 rl({RS}/inline-escaped.png)">d</div>'
+              f'<ul><li style="list-style-image:url({RS}/inline-list-style.png)">e</li></ul>'
+              f'<video poster="{RS}/video-poster.png" src="{RS}/video.mp4"></video><audio src="{RS}/audio.mp3" autoplay></audio>'
+              f'<embed src="{RS}/embed.swf"><object data="{RS}/object.bin"></object><iframe src="{RS}/iframe.html"></iframe>'
+              f'<input type="image" src="{RS}/input-image.png"><svg><image href="{RS}/svg-image.png"/></svg>'
+              '<p style="color:#654321" id="styled">Цвет остался.</p></body></html>')
+R2 = msg(ME, ANNA, "Re: Рассылка с трекерами", ago(hours=6), "<r2@example.test>", refs=["<r1@example.test>"], text="Получил.\n")
+R1.seen = R2.seen = True
+
 # A conversation in the first account whose incoming mail also names the address
 # of the second account: replies must still leave from the first one.
 ME2 = "Peter Work <me2@work.example>"
@@ -164,8 +194,8 @@ acct = os.path.join(PROFILE, "Mail", "127.0.0.1")
 local = os.path.join(PROFILE, "Mail", "Local Folders")
 os.makedirs(acct, exist_ok=True)
 os.makedirs(local, exist_ok=True)
-mbox(os.path.join(acct, "Inbox"), [A1, X1, A3, N1, A4, C1, C2, H1, G1, G3, I1, J2, J3, J4, J5] + e_inbox)
-mbox(os.path.join(acct, "Sent"), [A2, A5, C3, H2, G2, I2, J1] + e_sent)
+mbox(os.path.join(acct, "Inbox"), [A1, X1, A3, N1, A4, C1, C2, H1, R1, G1, G3, I1, J2, J3, J4, J5] + e_inbox)
+mbox(os.path.join(acct, "Sent"), [A2, A5, C3, H2, R2, G2, I2, J1] + e_sent)
 work = os.path.join(PROFILE, "Mail", "localhost")
 os.makedirs(work, exist_ok=True)
 for name in ("Inbox", "Sent", "Trash"):

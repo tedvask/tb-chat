@@ -11,6 +11,59 @@ const REPLY_MARKER =
   "#divRplyFwdMsg, #appendonsend, #OLK_SRC_BODY_SECTION, .yahoo_quoted, [id^='yahoo_quoted'], .protonmail_quote, #mail-editor-reference-message-container";
 const SIGNATURE = ".gmail_signature, [data-smartmail='gmail_signature'], .moz-signature";
 const WRAPPERS = /^(DIV|SPAN|SECTION|ARTICLE|FONT|P|CENTER|TABLE|TBODY|TR|TD|B|I)$/;
+// Nothing in a bubble may be fetched from a server: a picture or a style sheet
+// loaded from the sender's machine tells the sender that the mail was opened.
+// Pictures stay only when they travel with the mail (cid:) or are embedded.
+const EMBEDDED_IMAGE = /^data:image\/(?:png|jpe?g|gif|webp);base64,/i;
+const EMBEDDED_CSS_URL = /url\("data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+\/=]*"\)/gi;
+
+/**
+ * True if CSS text could make the browser fetch something. Used on text the
+ * browser's own CSS parser has written out again, where a URL can only appear
+ * as url("…"); variables, escapes and the other ways of smuggling one in are
+ * refused outright rather than interpreted.
+ */
+function reachesOut(cssText) {
+  return /url\(|image-set\(|src\(|var\(|--|\\|expression\(|-moz-binding|behavior\s*:|javascript:/i.test(cssText.replace(EMBEDDED_CSS_URL, ""));
+}
+
+/** Remove the declarations that could fetch something (a CSSStyleDeclaration). */
+function dropFetching(style) {
+  for (const property of [...style]) {
+    if (property.startsWith("--") || reachesOut(style.getPropertyValue(property))) {
+      style.removeProperty(property);
+    }
+  }
+}
+
+/** One rule of the mail's style sheet as safe text, or "" if it has to go. */
+function cleanRule(rule) {
+  if (rule instanceof CSSStyleRule) {
+    dropFetching(rule.style);
+    return reachesOut(rule.cssText) ? "" : rule.cssText;
+  }
+  if (rule instanceof CSSMediaRule || rule instanceof CSSSupportsRule) {
+    const head = `${rule instanceof CSSMediaRule ? "@media" : "@supports"} ${rule.conditionText}`;
+    const inner = [...rule.cssRules].map(cleanRule).filter(Boolean).join("\n");
+    return inner && !reachesOut(head) ? `${head} {\n${inner}\n}` : "";
+  }
+  if (rule instanceof CSSKeyframesRule) {
+    return reachesOut(rule.cssText) ? "" : rule.cssText;
+  }
+  return ""; // @import, @font-face, @namespace, @property…: nothing a chat bubble needs
+}
+
+/** The mail's own style sheets, parsed by the browser and written out without anything that fetches. */
+function cleanCss(text) {
+  const sheet = new CSSStyleSheet();
+  try {
+    sheet.replaceSync(text);
+  } catch {
+    return "";
+  }
+  return [...sheet.cssRules].map(cleanRule).filter(Boolean).join("\n");
+}
+
 const HEADER_BLOCK = /^\s*(?:from|от|von|de)\s*:[\s\S]{0,300}?(?:sent|date|отправлено|дата|gesendet|envoyé)\s*:[\s\S]{0,400}?(?:subject|тема|betreff|objet)\s*:/i;
 
 function sanitize(doc) {
@@ -26,12 +79,22 @@ function sanitize(doc) {
         if (!/^(https?:|mailto:|tel:|#)/i.test(value)) {
           el.removeAttribute(attr.name);
         }
-      } else if (["src", "background", "poster", "cite", "longdesc"].includes(name)) {
-        if (!/^(https?:|cid:|data:image\/(png|jpe?g|gif|webp);)/i.test(value)) {
+      } else if (["src", "background", "poster"].includes(name)) {
+        if (!/^cid:/i.test(value) && !EMBEDDED_IMAGE.test(value)) {
           el.removeAttribute(attr.name);
         }
-      } else if (name === "style" && /expression\s*\(|-moz-binding|behavior\s*:|javascript:/i.test(attr.value)) {
+      } else if (["cite", "longdesc", "lowsrc", "dynsrc"].includes(name)) {
         el.removeAttribute(attr.name);
+      } else if (name === "style") {
+        if (el.style) {
+          dropFetching(el.style);
+        }
+        const rest = el.style?.cssText;
+        if (!rest || reachesOut(rest)) {
+          el.removeAttribute(attr.name);
+        } else {
+          el.setAttribute(attr.name, rest);
+        }
       }
     }
     if (el.tagName === "A") {
@@ -155,11 +218,7 @@ export function prepareHtml(source, { forward = false } = {}) {
     css += style.textContent + "\n";
     style.remove();
   }
-  css = css
-    .replace(/@import[^;]*;?/gi, "")
-    .replace(/expression\s*\([^)]*\)/gi, "")
-    .replace(/-moz-binding\s*:[^;}]*/gi, "")
-    .replace(/behavior\s*:[^;}]*/gi, "");
+  css = cleanCss(css);
   sanitize(doc);
 
   const untrimmed = doc.body.cloneNode(true);

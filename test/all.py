@@ -4,6 +4,15 @@ sys.path.insert(0, "test")
 from h import *
 W = sys.argv[1]
 tb = TB()
+
+# A local web server that records every request: the chat must never cause one.
+import threading, http.server
+remote_hits = []
+class _Record(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        remote_hits.append(self.path); self.send_response(200); self.send_header("Content-Type", "image/png"); self.end_headers()
+    def log_message(self, *a): pass
+threading.Thread(target=http.server.ThreadingHTTPServer(("127.0.0.1", 11180), _Record).serve_forever, daemon=True).start()
 ok = True
 def check(name, cond, detail=""):
     global ok
@@ -248,6 +257,36 @@ check("rich HTML: script, iframe, onclick and javascript: link removed", not (in
 check("rich HTML: picture from the mail shown, attachment chip not duplicated", info["imgs"][0].startswith("data:image/png;base64") and c["rows"][0]["atts"] == [], (info["imgs"], c and c["rows"][0]["atts"]))
 check("rich HTML: the mail's CSS stays inside its bubble", info["cellBg"] == "rgb(255, 238, 204)" and info["uiColor"] != "rgb(255, 0, 0)" and c["rows"][0]["paper"], info)
 check("link opens in the browser, the message pane stays", tb.bg("return window.__opened;") == ["https://example.test/report?q=3"] and info["paneUrl"] == "mailbox", (tb.bg("return window.__opened;"), info["paneUrl"]))
+
+# remote content: a bubble must not fetch anything, even when Thunderbird itself is set to show remote content
+tb.js('Services.prefs.setBoolPref("mailnews.message_display.disable_remote_image", false);')
+tb.open_folder(SENT)
+del remote_hits[:]
+tb.select("r2@example.test"); c = tb.chat(); time.sleep(3)   # my plain reply is the displayed message, the tracker mail is a bubble
+rinfo = tb.js("""
+  const inner = chatRoot().querySelector(".row .html").openOrClosedShadowRoot, win = msgBrowser().contentWindow;
+  const all = [...inner.querySelectorAll("*")];
+  return { text: inner.querySelector(".m").innerText.replace(/\\s+/g, " ").trim().slice(0, 60),
+           leftovers: all.filter(e => /127\\.0\\.0\\.1/.test(e.outerHTML.replace(e.innerHTML, "")) || /127\\.0\\.0\\.1/.test(e.tagName == "STYLE" ? e.textContent : "")).map(e => e.tagName),
+           ruleColor: win.getComputedStyle(inner.querySelector("#kept")).color, inlineColor: win.getComputedStyle(inner.querySelector("#styled")).color };""")
+check("remote content: the tracker mail is shown as a bubble", c and len(c["rows"]) == 2 and c["rows"][0]["html"] and rinfo["text"].startswith("Письмо с трекерами"), (c and len(c["rows"]), rinfo))
+check("remote content: no request leaves, although Thunderbird is set to show remote content", remote_hits == [], sorted(set(remote_hits)))
+check("remote content: no remote address is left anywhere in the bubble", rinfo["leftovers"] == [], rinfo["leftovers"])
+check("remote content: harmless styling of the mail survives", rinfo["ruleColor"] == "rgb(18, 52, 86)" and rinfo["inlineColor"] == "rgb(101, 67, 33)", rinfo)
+raw = tb.bg("""
+  const { prepareHtml } = await import("/lib/html.js");
+  const data = "data:image/png;base64,iVBORw0KGgo=";
+  const r = prepareHtml('<style>.k{background:url(' + data + ');color:red} .x{background:url(http://127.0.0.1:11180/unit.png)}</style>' +
+    '<p class="k" style="background-image:url(' + data + ');margin:1px">t <img src="' + data + '"><img src="cid:a@b"><img src="https://127.0.0.1:11180/unit2.png"></p>');
+  return { css: r.css, html: r.html };""")
+check("remote content: embedded pictures (data:, cid:) are kept, in markup and in CSS",
+      raw["css"].count("data:image/png") == 1 and "color: red" in raw["css"] and "11180" not in raw["css"] + raw["html"]
+      and raw["html"].count("data:image/png") == 2 and 'src="cid:a@b"' in raw["html"] and "margin: 1px" in raw["html"], raw)
+del remote_hits[:]
+tb.js('await fetch("http://127.0.0.1:11180/self-check").catch(() => 0); await sleep(300);')
+check("remote content: (the recording server is reachable, so silence above means something)", "/self-check" in remote_hits, remote_hits)
+tb.js('Services.prefs.clearUserPref("mailnews.message_display.disable_remote_image");')
+tb.open_folder(INBOX)
 r = tb.js("""
   pane.gViewWrapper.showUnthreaded = true; await sleep(300);
   const ix = id => pane.gDBView.findIndexOfMsgHdr(pane.gFolder.msgDatabase.getMsgHdrForMessageID(id), false);

@@ -24,8 +24,11 @@ access" permission and nothing tied to Thunderbird internals.
   back if the conversation reaches the edge of that. "Search for older
   messages" looks through every folder of the account.
 - HTML mail is shown as HTML, each in a shadow root of its own, after scripts,
-  frames, forms, event handlers and non-http links are removed. Pictures inside
-  the mail are shown; remote ones follow Thunderbird's remote-content setting.
+  frames, forms, event handlers and non-http links are removed. Pictures that
+  travel with the mail are shown. Nothing is ever fetched from a server:
+  remote pictures, backgrounds, fonts and style sheets are taken out (also
+  from the mail's CSS), so opening a conversation tells no sender that a mail
+  was read. To see remote pictures, open the message in the standard view.
   The quote of the previous message and the signature are cut from the end.
 - Bodies are loaded only for the messages on screen.
 - New mail, moves, deletions and sent replies update the open chat through
